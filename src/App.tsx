@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { useState, useEffect, useCallback, ChangeEventHandler, ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { open } from '@tauri-apps/api/dialog';
-import {  desktopDir } from '@tauri-apps/api/path';
+import { desktopDir } from '@tauri-apps/api/path';
 import { message } from '@tauri-apps/api/dialog';
 import "./App.css";
 
@@ -9,11 +9,18 @@ function App() {
     const [number, setNumber] = useState("");
     const [dirPath, setDirPath] = useState("");
     const [loading, setLoading] = useState(false);
+    const [qrCode, setQRCode] = useState(false);
+    const [csv, setCsv] = useState(false);
 
     async function generate() {
         setLoading(true)
         try {
-            const res : string = await invoke("generate", {numberOfWallet: Number(number), dirPath })
+            const res: string = await invoke("generate", {
+                numberOfWallet: Number(number),
+                dirPath,
+                qrCode,
+                csv
+            })
             await message(res);
         } catch (e) {
             console.error(e);
@@ -24,13 +31,21 @@ function App() {
 
     }
 
-    function openDialog () {
-        open({ directory: true, multiple: false }).then(files => {
+    function openDialog() {
+        open({directory: true, multiple: false}).then(files => {
             setDirPath(files as string)
         })
     }
 
-    React.useEffect(() => {
+    const updateCheckbox = useCallback((type: string) => {
+        return (e: ChangeEvent<HTMLInputElement>) => {
+            console.log(e.target.checked)
+            if (type === 'csv') setCsv(e.target.checked)
+            if (type === 'qr') setQRCode(e.target.checked)
+        }
+    }, [])
+
+    useEffect(() => {
         desktopDir().then(r => setDirPath(r))
     }, [])
 
@@ -63,9 +78,28 @@ function App() {
                 </div>
 
                 <p>
-                    Enter the number of wallets you want to generate.
+                    Check if you need a csv file or qrcode images. <br/>
+                    Only JSON files will be exported by default.
                 </p>
 
+                <div className="row-vertical">
+                    <div>
+                        <input type="checkbox" id="csv" name="csv" value={Number(csv)}
+                               onChange={updateCheckbox('csv')}/>
+                        <label htmlFor="scales">export csv file</label>
+                    </div>
+
+                    <div>
+                        <input type="checkbox" id="qrcode" name="qrcode" value={Number(qrCode)}
+                               onChange={updateCheckbox('qr')}/>
+                        <label htmlFor="horns">export qrcodes *takes long time</label>
+                    </div>
+                </div>
+
+
+                <p>
+                    Enter the number of wallets you want to generate.
+                </p>
                 <div className="row">
                     <div>
                         <input
