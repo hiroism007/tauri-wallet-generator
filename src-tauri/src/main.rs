@@ -19,6 +19,8 @@ use tokio::io::AsyncWriteExt;
 use image::Luma;
 use qrcode::QrCode;
 
+use chrono::Utc;
+
 #[tauri::command]
 async fn generate(
     dir_path: String,
@@ -28,37 +30,50 @@ async fn generate(
 ) -> Result<String, String> {
     let now = Instant::now();
     let count = Arc::new(Mutex::new(0));
-    let str = Arc::new(dir_path);
-    let is_qr_enabled = Arc::new(qr_code);
-    let is_csv_enabled = Arc::new(csv);
+    let dir_path_arc = Arc::new(dir_path);
+    let is_qr_arc = Arc::new(qr_code);
+    let is_csv_arc = Arc::new(csv);
+    let path_arc = Arc::new(format!(
+        "/{}/{}",
+        &dir_path_arc,
+        Utc::now().format("%Y-%m-%d %T %Z")
+    ));
 
-    tokio::fs::create_dir_all(format!("/{}/json", &str))
+    tokio::fs::create_dir_all(path_arc.as_ref())
         .await
-        .expect("Failed to crete json dir");
+        .expect("Failed to crete base");
 
-    if *is_qr_enabled {
-        tokio::fs::create_dir_all(format!("/{}/qr", &str))
+    tokio::fs::create_dir_all(format!("{}/json", path_arc.as_ref()))
+        .await
+        .expect("Failed to crete dir json");
+
+    if *is_qr_arc {
+        tokio::fs::create_dir_all(format!("/{}/qr-public-key", path_arc.as_ref()))
+            .await
+            .expect("Failed to create qr dir");
+        tokio::fs::create_dir_all(format!("/{}/qr-private-key", path_arc.as_ref()))
             .await
             .expect("Failed to create qr dir");
     }
 
-    if *is_csv_enabled {
+    if *is_csv_arc {
         let mut csv = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(format!("/{}/record.csv", &str))
+            .open(format!("/{}/record.csv", path_arc.as_ref()))
             .await
             .expect("Failed to crete csv file");
-        csv.write(b"private_key,wallet_address\n")
+
+        csv.write_all(b"private_key,wallet_address\n")
             .await
             .expect("Failed to initialize csv file");
     }
 
-    for _ in 0..number_of_wallet {
+    for i in 0..number_of_wallet {
         let my_count = Arc::clone(&count);
-        let dir = Arc::clone(&str);
-        let qr = Arc::clone(&is_qr_enabled);
-        let csv = Arc::clone(&is_csv_enabled);
+        let qr = Arc::clone(&is_qr_arc);
+        let csv = Arc::clone(&is_csv_arc);
+        let path = Arc::clone(&path_arc);
 
         tokio::spawn(async move {
             let mut lock = my_count.lock().await;
@@ -68,7 +83,7 @@ async fn generate(
             let mut file = OpenOptions::new()
                 .write(true)
                 .create(true)
-                .open(format!("/{}/json/{}.json", &dir, lock))
+                .open(format!("/{}/json/{}.json", &path, i + 1))
                 .await?;
 
             let address = key.address();
@@ -85,10 +100,16 @@ async fn generate(
             .await?;
 
             if *qr {
-                let code = QrCode::new(private_key.clone()).unwrap();
-                let image = code.render::<Luma<u8>>().build();
+                let mut code = QrCode::new(private_key.clone()).unwrap();
+                let mut image = code.render::<Luma<u8>>().build();
                 image
-                    .save(format!("/{}/qr/{}.png", &dir, lock))
+                    .save(format!("/{}/qr-public-key/{}.png", &path, i + 1))
+                    .expect("Failed to save image");
+
+                code = QrCode::new(address.clone()).unwrap();
+                image = code.render::<Luma<u8>>().build();
+                image
+                    .save(format!("/{}/qr-private-key/{}.png", &path, i + 1))
                     .expect("Failed to save image");
             }
 
@@ -96,11 +117,11 @@ async fn generate(
                 let mut record = OpenOptions::new()
                     .read(true)
                     .append(true)
-                    .open(format!("/{}/record.csv", &dir))
+                    .open(format!("/{}/record.csv", &path))
                     .await?;
 
                 record
-                    .write(format!("{},{:?}\n", private_key, address).as_ref())
+                    .write_all(format!("{},{:?}\n", private_key, address).as_ref())
                     .await?;
             }
 

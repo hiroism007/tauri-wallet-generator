@@ -6,7 +6,7 @@ import { message } from '@tauri-apps/api/dialog';
 import "./App.css";
 
 function App() {
-    const [number, setNumber] = useState("");
+    const [number, setNumber] = useState("10");
     const [dirPath, setDirPath] = useState("");
     const [loading, setLoading] = useState(false);
     const [qrCode, setQRCode] = useState(false);
@@ -106,6 +106,7 @@ function App() {
                             id="greet-input"
                             onChange={(e) => setNumber(e.currentTarget.value)}
                             placeholder="Enter the number of..."
+                            value={number}
                         />
                         <button type="button" onClick={() => generate()}>
                             Generate
