@@ -1,7 +1,14 @@
-# Tauri + React + Typescript
+# Tauri Ethereum Wallet Generator
+A simple Etheruem wallet generator made with Tauri.
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
 
-## Recommended IDE Setup
+You can download the latest build [here](https://github.com/hiroism007/tauri-wallet-generator/releases).
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+# How to use
+
+* Download & install the app in your computer and open it.
+* Input the parameters, such as how many wallets to generate etc.
+* Push the generate button and wait!
+  * If you check the qrcode option, it will take more time than just exporting json files or with a csv file.
+  * The execution time depends on your machine specs.
+
