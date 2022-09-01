@@ -1,6 +1,7 @@
 # Tauri Ethereum Wallet Generator
 A simple Etheruem wallet generator made with Tauri.
 
+<img width="1355" alt="Screen Shot 2022-09-01 at 11 59 50" src="https://user-images.githubusercontent.com/1129345/187823157-f65adf2d-bffe-4a5f-9421-cf536c35e48e.png">
 
 You can download the latest build [here](https://github.com/hiroism007/tauri-wallet-generator/releases).
 
